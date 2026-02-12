@@ -3,7 +3,6 @@ package com.aguiar.expense_tracking2.controller
 import com.aguiar.expense_tracking2.dto.ExpenseCreateDTO
 import com.aguiar.expense_tracking2.dto.ExpenseResponseDTO
 import com.aguiar.expense_tracking2.dto.ExpenseUpdateDTO
-import com.aguiar.expense_tracking2.model.Expense
 import com.aguiar.expense_tracking2.service.ExpenseService
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Min

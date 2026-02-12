@@ -8,7 +8,6 @@ class UserCreateDTO(
     @field:NotBlank(message = "Name is required")
     var name: String,
 
-    @field:NotBlank(message = "Email is required")
     @field:Email(message = "Email is invalid")
     var email: String
 ){
