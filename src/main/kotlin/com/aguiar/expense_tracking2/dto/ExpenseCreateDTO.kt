@@ -16,7 +16,7 @@ class ExpenseCreateDTO (
     @field:NotBlank(message = "SubCategory is required")
     var subCategory: String,
 
-    var description: String,
+    var description: String = "",
 
     @field:NotNull(message = "Amount is required")
     @field:Positive(message = "Amount must be a positive number")

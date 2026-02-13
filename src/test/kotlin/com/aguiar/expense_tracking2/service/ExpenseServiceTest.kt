@@ -74,8 +74,8 @@ class ExpenseServiceTest {
 
     // ============ CREATE TESTS ============
     @Test
-    @DisplayName("Should create expense successfully when data is valid")
-    fun shouldCreateExpenseSuccessfully() {
+    @DisplayName("Should create expense when data is valid")
+    fun shouldCreateExpense() {
         // 1. Arrange
         val dto = ExpenseCreateDTO(
             category = "Saúde",
@@ -184,6 +184,7 @@ class ExpenseServiceTest {
         val result = expenseService.getAllExpenses()
 
         // 3. Assert
+        assertNotNull(result)
         assertTrue(result.isEmpty())
     }
 
@@ -267,8 +268,8 @@ class ExpenseServiceTest {
     // ============ UPDATE TESTS ============
 
     @Test
-    @DisplayName("Should update expense successfully")
-    fun shouldUpdateExpenseSuccessfully() {
+    @DisplayName("Should update expense")
+    fun shouldUpdateExpense() {
         // 1. Arrange
         val updateData = ExpenseUpdateDTO(
             category = "Carro",
@@ -344,8 +345,8 @@ class ExpenseServiceTest {
     // ============ DELETE TESTS ============
 
     @Test
-    @DisplayName("Should delete expense successfully")
-    fun shouldDeleteExpenseSuccessfully() {
+    @DisplayName("Should delete expense")
+    fun shouldDeleteExpense() {
         // 1. Arrange
         `when`(expenseRepository.existsById(1L)).thenReturn(true)
 
