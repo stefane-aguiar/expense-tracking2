@@ -19,6 +19,9 @@ class User (
     var name: String,
 
     @Column(nullable = false)
-    var email: String
+    var email: String,
+
+    @Column (nullable = false)
+    var password: String
 
 )
