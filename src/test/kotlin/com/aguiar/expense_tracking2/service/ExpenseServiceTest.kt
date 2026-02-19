@@ -52,7 +52,8 @@ class ExpenseServiceTest {
         testUser = User(
             id = 1L,
             name = "Joao",
-            email = "joao@email.com"
+            email = "joao@email.com",
+            password = "123456"
         )
         // Expense that "already exists in the database" (for tests READ/UPDATE/DELETE, but not CREATE)
         testExpense = Expense(

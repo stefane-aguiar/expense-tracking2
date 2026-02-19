@@ -486,7 +486,7 @@ class ExpenseControllerIntegrationTest {
     // === createTestUser
 
     fun createTestUser(): Long {
-        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
         val resultUser = mockMvc.perform(
             post("/users")
                 .contentType(MediaType.APPLICATION_JSON)

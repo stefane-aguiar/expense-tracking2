@@ -45,7 +45,8 @@ class UserServiceTest {
         testUser = User(
             id = 1L,
             name = "Joao",
-            email = "joao@email.com"
+            email = "joao@email.com",
+            password = "123456"
         )
     }
 
@@ -61,7 +62,7 @@ class UserServiceTest {
     @DisplayName("Should create user when data is valid")
     fun shouldCreateUser() {
         // 1. Arrange
-        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
             // MOCK: Programs userRepository
         `when`(userRepository.save(any(User::class.java))).thenAnswer { invocation ->
@@ -69,7 +70,8 @@ class UserServiceTest {
             User(
                 id = 1L,
                 name = user.name,
-                email = user.email
+                email = user.email,
+                password = "123456"
             )
         }
 
@@ -95,7 +97,8 @@ class UserServiceTest {
         // 1. Arrange
         val user2 = User(
             name = "Steh",
-            email = "steh@email.com"
+            email = "steh@email.com",
+            password = "123456"
         )
 
         val users = listOf(testUser, user2)

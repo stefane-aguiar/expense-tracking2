@@ -6,12 +6,15 @@ import jakarta.validation.constraints.NotBlank
 
 class UserCreateDTO(
     @field:NotBlank(message = "Name is required")
-    var name: String,
+    val name: String,
 
     @field:Email(message = "Email is invalid")
-    var email: String
+    val email: String,
+
+    @field:NotBlank(message = "Password is required")
+    val password: String
 ){
     fun toEntity(): User {
-        return User(name = name, email = email)
+        return User(name = name, email = email, password = password)
     }
 }

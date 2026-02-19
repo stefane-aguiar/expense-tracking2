@@ -49,7 +49,7 @@ class UserControllerIntegrationTest {
     @DisplayName("POST /users - Should create user and return 201")
     fun shouldCreateUser() {
         // 1. Arrange
-        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
         // 2. Act & Assert
         mockMvc.perform(
@@ -68,7 +68,7 @@ class UserControllerIntegrationTest {
     @DisplayName("POST /users - Should return 400 when name is blank")
     fun shouldReturn400WhenNameIsBlank() {
         // 1. Arrange
-        val dto = UserCreateDTO(name = "", email = "steh@email.com")
+        val dto = UserCreateDTO(name = "", email = "steh@email.com", password = "123456")
 
         // 2. Act & Assert
         mockMvc.perform(
@@ -85,7 +85,7 @@ class UserControllerIntegrationTest {
     @DisplayName("POST /users - Should return 400 when email is invalid")
     fun shouldReturn400WhenEmailIsInvalid() {
         // 1. Arrange
-        val dto = UserCreateDTO(name = "Steh", email = "invalid_email")
+        val dto = UserCreateDTO(name = "Steh", email = "invalid_email", password = "123456")
 
         // 2. Act & Assert
         mockMvc.perform(
@@ -106,8 +106,8 @@ class UserControllerIntegrationTest {
     @DisplayName("GET /users - Should get all users and return 200")
     fun shouldGetAllUsers() {
         // 1. Arrange
-        val dtoUser1 = UserCreateDTO(name = "user1", email = "user1@email.com")
-        val dtoUser2 = UserCreateDTO(name = "user2", email = "user2@email.com")
+        val dtoUser1 = UserCreateDTO(name = "user1", email = "user1@email.com", password = "123456")
+        val dtoUser2 = UserCreateDTO(name = "user2", email = "user2@email.com", password = "123456")
 
         mockMvc.perform(
             post("/users")
@@ -133,7 +133,7 @@ class UserControllerIntegrationTest {
     @DisplayName("GET /users/{id} - Should get user by id and return 200")
     fun shouldGetUserById() {
         // 1. Arrange
-        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
         val result = mockMvc.perform(
             post("/users")
@@ -169,7 +169,7 @@ class UserControllerIntegrationTest {
     @DisplayName("PATCH /users/{id} - Should update user and return 200")
     fun shouldUpdateUser() {
         // 1. Arrange
-        val dtoUserCreate = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dtoUserCreate = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
         val result = mockMvc.perform(
             post("/users")
@@ -215,7 +215,7 @@ class UserControllerIntegrationTest {
     @DisplayName("PATCH /users/{id} - Should return 400 when updating with invalid email")
     fun shouldReturn400WhenUpdatingWithInvalidEmail() {
         // 1. Arrange
-        val dtoUserCreate = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dtoUserCreate = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
         val result = mockMvc.perform(
             post("/users")
@@ -243,7 +243,7 @@ class UserControllerIntegrationTest {
     @DisplayName("PATCH /users/{id} - Should return 400 when updating name as blank")
     fun shouldReturn400WhenUpdatingNameAsBlank() {
         // 1. Arrange
-        val dtoUserCreate = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dtoUserCreate = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
         val result = mockMvc.perform(
             post("/users")
@@ -274,7 +274,7 @@ class UserControllerIntegrationTest {
     @DisplayName("DELETE /users/{id} - Should delete user and return 200")
     fun shouldDeleteUser() {
         // 1. Arrange
-        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com")
+        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
 
         val result = mockMvc.perform(
             post("/users")
