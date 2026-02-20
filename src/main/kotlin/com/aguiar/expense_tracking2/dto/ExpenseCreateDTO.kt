@@ -23,11 +23,7 @@ class ExpenseCreateDTO (
     var amount: BigDecimal,
 
     @field:NotNull(message = "Date is required")
-    var date: LocalDate,
-
-    @field:NotNull(message = "User ID is required")
-    val userId: Long
-
+    var date: LocalDate
 
 ){
     fun toEntity(user: User): Expense {

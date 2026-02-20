@@ -19,18 +19,25 @@ class ExpenseService (
 
 
     // Create
-    fun createExpense(dto: ExpenseCreateDTO): Expense {
-        logger.info("Creating expense for userId=${dto.userId}")
+    fun createExpense(dto: ExpenseCreateDTO, userId: Long): Expense {
+        logger.info("Creating expense for userId=${userId}")
 
         // 1. Search real user on DataBase
-        val user = userRepository.findById(dto.userId)
+        val user = userRepository.findById(userId)
             .orElseThrow {
-                logger.warn("User not found with id=${dto.userId}")
-                ResourceNotFoundException("User not found with id: ${dto.userId}")
+                logger.warn("User not found with id=$userId")
+                ResourceNotFoundException("User not found with id: $userId")
             }
 
-        // 2. Converts DTO -> Entity
-        val expense = dto.toEntity(user)
+        // 2.
+        val expense = Expense(
+            category = dto.category,
+            subCategory = dto.subCategory,
+            description = dto.description,
+            amount = dto.amount,
+            date = dto.date,
+            user = user
+        )
 
         // 3. Save and return
         val saved = expenseRepository.save(expense)
@@ -41,43 +48,36 @@ class ExpenseService (
 
 
     // Get
-    fun getAllExpenses(): List<Expense> {
-        logger.info("Fetching all expenses")
-        return expenseRepository.findAll()
-    }
-
-    fun getExpense(expenseId: Long): Expense {
-        logger.info("Fetching expense id=$expenseId")
-        return expenseRepository.findById(expenseId)
-            .orElseThrow {
-                logger.warn("Expense not found with id=$expenseId")
-                ResourceNotFoundException("Expense not found with id: $expenseId")
-            }
-    }
-
-    fun getExpenseByUser(userId: Long): List<Expense> {
+    fun getAllExpenses(userId: Long): List<Expense> {
         logger.info("Fetching expenses for userId=$userId")
-
-        // 1. Validates if user exists
-        if (!userRepository.existsById(userId)) {
-            logger.warn("User not found with id=$userId")
-            throw ResourceNotFoundException("User not found with id: $userId")
-        }
-        // 2. Return
         return expenseRepository.findByUserId(userId)
     }
 
+    fun getExpense(expenseId: Long, userId: Long): Expense {
+        logger.info("Fetching expense id=$expenseId for userId=$userId")
 
-    // Update
-    fun updateExpense(expenseId: Long, dto: ExpenseUpdateDTO): Expense {
-        logger.info("Updating expense id=$expenseId")
-
-        // 1. Validates if expense exists
-        val existingExpense = expenseRepository.findById(expenseId)
+        val expense = expenseRepository.findById(expenseId)
             .orElseThrow {
                 logger.warn("Expense not found with id=$expenseId")
                 ResourceNotFoundException("Expense not found with id: $expenseId")
             }
+
+        if (expense.user.id != userId) {
+            logger.warn("User $userId tried to access expense $expenseId owned by ${expense.user.id}")
+            throw ResourceNotFoundException("Expense not found with id: $expenseId")
+        }
+
+        return expense
+    }
+
+
+
+
+    // Update
+    fun updateExpense(expenseId: Long, dto: ExpenseUpdateDTO, userId: Long): Expense {
+        logger.info("Updating expense id=$expenseId for userId=$userId")
+
+        val existingExpense = getExpense(expenseId, userId)
 
         // 2. Updates only the fields which came in the request (PATCH)
         dto.category?.takeIf { it.isNotBlank() }?.let { existingExpense.category = it }
@@ -90,21 +90,15 @@ class ExpenseService (
         val saved = expenseRepository.save(existingExpense)
         logger.info("Expense updated: id=${saved.id}")
         return saved
-
     }
 
 
     // Delete
-    fun deleteExpense(expenseId: Long) {
-        logger.info("Deleting expense id=$expenseId")
+    fun deleteExpense(expenseId: Long, userId: Long) {
+        logger.info("Deleting expense id=$expenseId for userId=$userId")
 
-        // 1. Validates if expense exists
-        if (!expenseRepository.existsById(expenseId)) {
-            logger.warn("Expense not found with id=$expenseId")
-            throw ResourceNotFoundException("Expense not found with id: $expenseId")
-        }
-        // 2. Delete
-        expenseRepository.deleteById(expenseId)
+        val expense = getExpense(expenseId, userId)
+        expenseRepository.delete(expense)
         logger.info("Expense deleted: id=$expenseId")
     }
 
