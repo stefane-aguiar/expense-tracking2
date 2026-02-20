@@ -14,7 +14,8 @@ import org.springframework.stereotype.Service
 @Service
 class AuthService (
     private val userRepository: UserRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtService: JwtService
 ){
 
     private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -52,9 +53,10 @@ class AuthService (
             throw ResourceNotFoundException("Invalid email or password")
         }
 
-        // 3. For now return fake token (will implement JWT later)
+        // 3. Generates token
+        val token = jwtService.generateToken(user)
         logger.info("Login successful for userId=${user.id}")
-        return AuthResponseDTO(token = "fake-token-${user.id}")
+        return AuthResponseDTO(token = token)
 
     }
 
