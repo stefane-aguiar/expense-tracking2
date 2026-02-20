@@ -2,6 +2,7 @@ package com.aguiar.expense_tracking2.controller
 
 import com.aguiar.expense_tracking2.dto.ExpenseCreateDTO
 import com.aguiar.expense_tracking2.dto.ExpenseUpdateDTO
+import com.aguiar.expense_tracking2.dto.LoginDTO
 import com.aguiar.expense_tracking2.dto.UserCreateDTO
 import com.aguiar.expense_tracking2.repository.ExpenseRepository
 import com.aguiar.expense_tracking2.repository.UserRepository
@@ -40,10 +41,18 @@ class ExpenseControllerIntegrationTest {
     @Autowired
     private lateinit var expenseRepository: ExpenseRepository
 
+    private var authToken: String = ""
+    private var userId: Long = 0L
+
     @BeforeEach
     fun setup() {
         expenseRepository.deleteAll()
         userRepository.deleteAll()
+
+        // Create user and get token for authenticated requests
+        val result = createTestUserAndLogin()
+        userId = result.first
+        authToken = result.second
     }
 
 
@@ -57,20 +66,18 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("POST /expenses - Should create expense and return 201")
     fun shouldCreateExpense() {
         // 1. Arrange
-        val userId = createTestUser()
-
         val dtoExpense = ExpenseCreateDTO(
             category = "Comida",
             subCategory = "Mercado",
             description = "mercado compra do mes",
             amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
+            date = LocalDate.now()
         )
 
         // 2. Act & Assert
         mockMvc.perform(
             post("/expenses")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoExpense))
         )
@@ -88,20 +95,18 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("POST /expenses - Should return 400 when category is blank")
     fun shouldReturn400WhenCategoryIsBlank() {
         // 1. Arrange
-        val userId = createTestUser()
-
         val dtoExpense = ExpenseCreateDTO(
             category = "",
             subCategory = "Mercado",
             description = "mercado compra do mes",
             amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
+            date = LocalDate.now()
         )
 
         // 2. Act & Assert
         mockMvc.perform(
             post("/expenses")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoExpense))
         )
@@ -114,20 +119,18 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("POST /expenses - Should return 400 when subCategory is blank")
     fun shouldReturn400WhenSubCategoryIsBlank() {
         // 1. Arrange
-        val userId = createTestUser()
-
         val dtoExpense = ExpenseCreateDTO(
             category = "Comida",
             subCategory = "",
             description = "mercado compra do mes",
             amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
+            date = LocalDate.now()
         )
 
         // 2. Act & Assert
         mockMvc.perform(
             post("/expenses")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoExpense))
         )
@@ -141,19 +144,17 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("POST /expenses - Should create expense with no description")
     fun shouldCreateExpenseWithNoDescription() {
         // 1. Arrange
-        val userId = createTestUser()
-
         val dtoExpense = ExpenseCreateDTO(
             category = "Comida",
             subCategory = "Mercado",
             amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
+            date = LocalDate.now()
         )
 
         // 2. Act & Assert
         mockMvc.perform(
             post("/expenses")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoExpense))
         )
@@ -167,27 +168,27 @@ class ExpenseControllerIntegrationTest {
     }
 
 
+
     @Test
-    @DisplayName("POST /expenses - Should return 404 when creating expense for non existent user")
-    fun shouldReturn404WhenCreatingExpenseForNonExistentUser() {
+    @DisplayName("POST /expenses - Should return 401 when not authenticated")
+    fun shouldReturn401WhenNotAuthenticated() {
         // 1. Arrange
         val dtoExpense = ExpenseCreateDTO(
             category = "Comida",
             subCategory = "Mercado",
             amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = 999L
+            date = LocalDate.now()
         )
 
-        // 2. Act & Assert
+        // 2. Act & Assert (no Authorization header)
         mockMvc.perform(
             post("/expenses")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoExpense))
         )
-            .andExpect(status().isNotFound)
-            .andExpect(jsonPath("$.message").value("User not found with id: 999"))
+            .andExpect(status().isForbidden)
     }
+
 
 
 
@@ -199,36 +200,13 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("GET /expenses - Should get all expenses and return 200")
     fun shouldGetAllExpenses() {
         // 1. Arrange
-        val userId = createTestUser()
-        val dtoExpense1 = ExpenseCreateDTO(
-            category = "Comida",
-            subCategory = "Mercado",
-            amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-        val dtoExpense2 = ExpenseCreateDTO(
-            category = "Transporte",
-            subCategory = "Uber",
-            amount = 34.13.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-
-        mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dtoExpense1))
-        )
-        mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dtoExpense2))
-        )
+        createExpense("Comida", "Mercado", 604.87)
+        createExpense("Transporte", "Uber", 34.13)
 
         // 2. Act & Assert
         mockMvc.perform(
             get("/expenses")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.length()").value(2))
@@ -243,27 +221,12 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("GET /expenses/{id} - Should get expense by id and return 200")
     fun shouldGetExpenseById() {
         // 1. Arrange
-        val userId = createTestUser()
-        val dtoExpense = ExpenseCreateDTO(
-            category = "Comida",
-            subCategory = "Mercado",
-            amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-
-        val result = mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dtoExpense))
-        ).andReturn()
-
-        val responseJson = result.response.contentAsString
-        val expenseId = objectMapper.readTree(responseJson).get("id").asLong()
+        val expenseId = createExpense("Comida", "Mercado", 604.87)
 
         // 2. Act & Assert
         mockMvc.perform(
             get("/expenses/$expenseId")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.id").value(expenseId))
@@ -272,49 +235,6 @@ class ExpenseControllerIntegrationTest {
     }
 
 
-    @Test
-    @DisplayName("GET /expenses/user/{userId} - Should get expense by user id and return 200")
-    fun shouldGetExpensesByUserId() {
-        // 1. Arrange
-        val userId = createTestUser()
-        val dtoExpense1 = ExpenseCreateDTO(
-            category = "Comida",
-            subCategory = "Mercado",
-            amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-        val dtoExpense2 = ExpenseCreateDTO(
-            category = "Transporte",
-            subCategory = "Uber",
-            amount = 34.13.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-
-        mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dtoExpense1))
-        )
-        mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dtoExpense2))
-        )
-
-        // 2. Act & Assert
-        mockMvc.perform(
-            get("/expenses/user/$userId")
-        )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$[0].category").value("Comida"))
-            .andExpect(jsonPath("$[1].category").value("Transporte"))
-            .andExpect(jsonPath("$[0].user.id").value(userId))
-            .andExpect(jsonPath("$[1].user.id").value(userId))
-    }
-
 
     @Test
     @DisplayName("GET /expenses/{id} - Should return 404 when expense not found")
@@ -322,21 +242,29 @@ class ExpenseControllerIntegrationTest {
         // 1. Act & Assert
         mockMvc.perform(
             get("/expenses/999")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.message").value("Expense not found with id: 999"))
     }
 
-
     @Test
-    @DisplayName("GET /expenses/user/{UserId} - Should return 404 when getting expenses by non existent user")
-    fun shouldReturn404WhenGettingExpensesByNonExistentUser() {
-        // 1. Act & Assert
+    @DisplayName("GET /expenses/{id} - Should return 404 when trying to access another user's expense")
+    fun shouldReturn404WhenAccessingAnotherUsersExpense() {
+        // 1. Arrange - create expense with current user
+        val expenseId = createExpense("Comida", "Mercado", 604.87)
+
+        // Create another user and get their token
+        val otherUserResult = createAnotherUserAndLogin("other@email.com")
+        val otherToken = otherUserResult.second
+
+        // 2. Act & Assert - try to access with other user
         mockMvc.perform(
-            get("/expenses/user/999")
+            get("/expenses/$expenseId")
+                .header("Authorization", "Bearer $otherToken")
         )
             .andExpect(status().isNotFound)
-            .andExpect(jsonPath("$.message").value("User not found with id: 999"))
+            .andExpect(jsonPath("$.message").value("Expense not found with id: $expenseId"))
     }
 
 
@@ -346,26 +274,11 @@ class ExpenseControllerIntegrationTest {
         // 1. Act & Assert
         mockMvc.perform(
             get("/expenses")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$").isEmpty)
     }
-
-
-    @Test
-    @DisplayName("GET /expenses/user/{userId} - Should return empty list when user has no expenses")
-    fun shouldReturnEmptyListWhenUserHasNoExpenses() {
-        // 1. Arrange
-        val userId = createTestUser()
-
-        // 2. Act & Assert
-        mockMvc.perform(
-            get("/expenses/user/$userId")
-        )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$").isEmpty)
-    }
-
 
 
 
@@ -374,29 +287,13 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("PATCH /expenses/{id} - Should update expense and return 200")
     fun shouldUpdateExpense() {
         // 1. Arrange
-        val userId = createTestUser()
-        val dto = ExpenseCreateDTO(
-            category = "Comida",
-            subCategory = "Mercado",
-            amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-
-        val result = mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto))
-        ).andReturn()
-
-        val responseJson = result.response.contentAsString
-        val expenseId = objectMapper.readTree(responseJson).get("id").asLong()
-
+        val expenseId = createExpense("Comida", "Mercado", 604.87)
         val dtoUpdated = ExpenseUpdateDTO(category = "Transporte", subCategory = "Uber")
 
         // 2. Act & Assert
         mockMvc.perform(
             patch("/expenses/$expenseId")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoUpdated))
         )
@@ -416,11 +313,33 @@ class ExpenseControllerIntegrationTest {
         // 2. Act & Assert
         mockMvc.perform(
             patch("/expenses/999")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoUpdated))
         )
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.message").value("Expense not found with id: 999"))
+    }
+
+
+    @Test
+    @DisplayName("PATCH /expenses/{id} - Should return 404 when updating another user's expense")
+    fun shouldReturn404WhenUpdatingAnotherUsersExpense() {
+        // 1. Arrange
+        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val dtoUpdated = ExpenseUpdateDTO(category = "Hacked")
+
+        val otherUserResult = createAnotherUserAndLogin("hacker@email.com")
+        val otherToken = otherUserResult.second
+
+        // 2. Act & Assert
+        mockMvc.perform(
+            patch("/expenses/$expenseId")
+                .header("Authorization", "Bearer $otherToken")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dtoUpdated))
+        )
+            .andExpect(status().isNotFound)
     }
 
 
@@ -433,31 +352,18 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("DELETE /expenses/{id} - Should delete expense and return 200")
     fun shouldDeleteExpense() {
         // 1. Arrange
-        val userId = createTestUser()
-        val dto = ExpenseCreateDTO(
-            category = "Comida",
-            subCategory = "Mercado",
-            amount = 604.87.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = userId
-        )
-
-        val result = mockMvc.perform(
-            post("/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto))
-        ).andReturn()
-
-        val responseJson = result.response.contentAsString
-        val expenseId = objectMapper.readTree(responseJson).get("id").asLong()
+        val expenseId = createExpense("Comida", "Mercado", 604.87)
 
         // 2. Act & Assert
         mockMvc.perform(
             delete("/expenses/$expenseId")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isOk)
+
         mockMvc.perform(
             get("/expenses/$expenseId")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.message").value("Expense not found with id: $expenseId"))
@@ -471,32 +377,88 @@ class ExpenseControllerIntegrationTest {
         // 1. Act & Assert
         mockMvc.perform(
             delete("/expenses/999")
+                .header("Authorization", "Bearer $authToken")
         )
             .andExpect(status().isNotFound)
             .andExpect(jsonPath("$.message").value("Expense not found with id: 999"))
     }
 
 
+    @Test
+    @DisplayName("DELETE /expenses/{id} - Should return 404 when deleting another user's expense")
+    fun shouldReturn404WhenDeletingAnotherUsersExpense() {
+        // 1. Arrange
+        val expenseId = createExpense("Comida", "Mercado", 604.87)
+
+        val otherUserResult = createAnotherUserAndLogin("deleter@email.com")
+        val otherToken = otherUserResult.second
+
+        // 2. Act & Assert
+        mockMvc.perform(
+            delete("/expenses/$expenseId")
+                .header("Authorization", "Bearer $otherToken")
+        )
+            .andExpect(status().isNotFound)
+    }
 
 
 
 
 
 
-    // === createTestUser
 
-    fun createTestUser(): Long {
-        val dto = UserCreateDTO(name = "Steh", email = "steh@email.com", password = "123456")
-        val resultUser = mockMvc.perform(
-            post("/users")
+
+// ============ HELPER METHODS ============
+
+    private fun createTestUserAndLogin(): Pair<Long, String> {
+        return createUserAndLogin("steh@email.com", "Steh", "123456")
+    }
+
+    private fun createAnotherUserAndLogin(email: String): Pair<Long, String> {
+        return createUserAndLogin(email, "Other User", "123456")
+    }
+
+    private fun createUserAndLogin(email: String, name: String, password: String): Pair<Long, String> {
+        // Register
+        val registerDto = UserCreateDTO(name = name, email = email, password = password)
+        val registerResult = mockMvc.perform(
+            post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(registerDto))
+        ).andReturn()
+
+        val userId = objectMapper.readTree(registerResult.response.contentAsString).get("id").asLong()
+
+        // Login
+        val loginDto = LoginDTO(email = email, password = password)
+        val loginResult = mockMvc.perform(
+            post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginDto))
+        ).andReturn()
+
+        val token = objectMapper.readTree(loginResult.response.contentAsString).get("token").asText()
+
+        return Pair(userId, token)
+    }
+
+    private fun createExpense(category: String, subCategory: String, amount: Double): Long {
+        val dto = ExpenseCreateDTO(
+            category = category,
+            subCategory = subCategory,
+            amount = amount.toBigDecimal(),
+            date = LocalDate.now()
+        )
+
+        val result = mockMvc.perform(
+            post("/expenses")
+                .header("Authorization", "Bearer $authToken")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dto))
         ).andReturn()
-        val responseJson = resultUser.response.contentAsString
-        val userId = objectMapper.readTree(responseJson).get("id").asLong()
-        return userId
-    }
 
+        return objectMapper.readTree(result.response.contentAsString).get("id").asLong()
+    }
 
 
 }

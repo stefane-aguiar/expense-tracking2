@@ -83,11 +83,12 @@ class ExpenseServiceTest {
             subCategory = "Remédio",
             description = "gripe Ana",
             amount = 40.18.toBigDecimal(),
-            date = LocalDate.now(),
-            userId = 1L
+            date = LocalDate.now()
         )
+        val userId = 1L
+
             // MOCK 1: Programs userRepository
-        `when`(userRepository.findById(1L)).thenReturn(Optional.of(testUser))
+        `when`(userRepository.findById(userId)).thenReturn(Optional.of(testUser))
             // MOCK 2: Programs expenseRepository
         `when`(expenseRepository.save(any(Expense::class.java))).thenAnswer { invocation ->
             val exp = invocation.getArgument<Expense>(0)
@@ -103,7 +104,7 @@ class ExpenseServiceTest {
         }
 
         // 2. Act
-        val result = expenseService.createExpense(dto)
+        val result = expenseService.createExpense(dto, userId)
 
         // 3. Assert
         assertNotNull(result)
@@ -112,7 +113,7 @@ class ExpenseServiceTest {
         assertEquals("Remédio", result.subCategory)
         assertEquals("gripe Ana", result.description)
         assertEquals(40.18.toBigDecimal(), result.amount)
-        verify(userRepository, times(1)).findById(1L)
+        verify(userRepository, times(1)).findById(userId)
         verify(expenseRepository, times(1)).save(any(Expense::class.java))
     }
 
@@ -126,14 +127,14 @@ class ExpenseServiceTest {
             description = "cafe da manha padaria",
             amount = 50.00.toBigDecimal(),
             date = LocalDate.now(),
-            userId = 999L
         )
+        val userId = 999L
 
-        `when`(userRepository.findById(999L)).thenReturn(Optional.empty())
+        `when`(userRepository.findById(userId)).thenReturn(Optional.empty())
 
         // 2. Act & Assert
         assertThrows(ResourceNotFoundException::class.java) {
-            expenseService.createExpense(dto)
+            expenseService.createExpense(dto, userId)
         }
         verify(expenseRepository, never()).save(any(Expense::class.java))
     }
@@ -146,8 +147,9 @@ class ExpenseServiceTest {
 
     @Test
     @DisplayName("Should return all expenses")
-    fun shouldReturnAllExpenses() {
+    fun shouldReturnAllExpensesForUser() {
         // 1. Arrange
+        val userId = 1L
         val expense2 = Expense(
             category = "Contas da casa",
             subCategory = "Condominio",
@@ -158,10 +160,10 @@ class ExpenseServiceTest {
         )
 
         val expenses = listOf(testExpense, expense2)
-        `when`(expenseRepository.findAll()).thenReturn(expenses)
+        `when`(expenseRepository.findByUserId(userId)).thenReturn(expenses)
 
         // 2. Act
-        val result = expenseService.getAllExpenses()
+        val result = expenseService.getAllExpenses(userId)
 
         // 3. Assert
         assertEquals(2, result.size)
@@ -171,7 +173,7 @@ class ExpenseServiceTest {
         assertEquals("Condominio", result[1].subCategory)
         assertEquals(13.50.toBigDecimal(), result[0].amount)
         assertEquals(1153.33.toBigDecimal(), result[1].amount)
-        verify(expenseRepository, times(1)).findAll()
+        verify(expenseRepository, times(1)).findByUserId(userId)
     }
 
 
@@ -179,10 +181,11 @@ class ExpenseServiceTest {
     @DisplayName("Should return empty list when no expenses")
     fun shouldReturnEmptyListWhenNoExpenses() {
         // 1. Arrange
-        `when`(expenseRepository.findAll()).thenReturn(listOf())
+        val userId = 1L
+        `when`(expenseRepository.findByUserId(userId)).thenReturn(listOf())
 
         // 2. Act
-        val result = expenseService.getAllExpenses()
+        val result = expenseService.getAllExpenses(userId)
 
         // 3. Assert
         assertNotNull(result)
@@ -194,10 +197,11 @@ class ExpenseServiceTest {
     @DisplayName("Should return expense by Id")
     fun shouldReturnExpenseById() {
         // 1. Arrange
+        val userId = 1L
         `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
 
         // 2. Act
-        val result = expenseService.getExpense(1L)
+        val result = expenseService.getExpense(1L, userId)
 
         // 3. Assert
         assertNotNull(result)
@@ -210,58 +214,34 @@ class ExpenseServiceTest {
     @DisplayName("Should throw exception when expense not found")
     fun shouldThrowExceptionWhenExpenseNotFound() {
         // 1. Arrange
+        val userId = 1L
         `when`(expenseRepository.findById(999L)).thenReturn(Optional.empty())
 
         // 2. Act & Assert
         val exception = assertThrows(ResourceNotFoundException::class.java) {
-            expenseService.getExpense(999L)
+            expenseService.getExpense(999L, userId)
         }
         assertEquals("Expense not found with id: 999", exception.message)
     }
 
 
-    @Test
-    @DisplayName("Should return expenses by user id")
-    fun shouldReturnExpensesByUserId() {
-        // 1. Arrange
-        val expense2 = Expense(
-            category = "Carro",
-            subCategory = "Gasolina",
-            description = "viagem x",
-            amount = 150.87.toBigDecimal(),
-            date = LocalDate.now(),
-            user = testUser
-        )
-
-        val userExpenses = listOf(testExpense, expense2)
-
-        `when`(userRepository.existsById(1L)).thenReturn(true)
-        `when`(expenseRepository.findByUserId(1L)).thenReturn(userExpenses)
-
-        // 2. Act
-        val result = expenseService.getExpenseByUser(1L)
-
-        // 3. Assert
-        assertEquals(2, result.size)
-        assertEquals(testUser.id, result[0].user.id)
-        assertEquals(testUser.id, result[1].user.id)
-    }
-
 
     @Test
-    @DisplayName("Should throw exception when user not found in get expense by user")
-    fun shouldThrowExceptionWhenUserNotFoundInGetExpenseByUser() {
+    @DisplayName("Should throw exception when user is not owner of expense")
+    fun shouldThrowExceptionWhenUserIsNotOwner() {
         // 1. Arrange
-        `when`(userRepository.existsById(999L)).thenReturn(false)
+        val otherUserId = 999L
+        `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
 
         // 2. Act & Assert
         val exception = assertThrows(ResourceNotFoundException::class.java) {
-            expenseService.getExpenseByUser(999L)
+            expenseService.getExpense(1L, otherUserId)
         }
-        assertEquals("User not found with id: 999", exception.message)
-        verify(expenseRepository, never()).findByUserId(anyLong())
-
+        assertEquals("Expense not found with id: 1", exception.message)
     }
+
+
+
 
 
 
@@ -272,6 +252,7 @@ class ExpenseServiceTest {
     @DisplayName("Should update expense")
     fun shouldUpdateExpense() {
         // 1. Arrange
+        val userId = 1L
         val updateData = ExpenseUpdateDTO(
             category = "Carro",
             amount = 195.91.toBigDecimal()
@@ -281,7 +262,7 @@ class ExpenseServiceTest {
         `when`(expenseRepository.save(any(Expense::class.java))).thenReturn(testExpense)
 
         // 2. Act
-        val result = expenseService.updateExpense(1L, updateData)
+        val result = expenseService.updateExpense(1L, updateData, userId)
 
         // 3. Assert
         assertEquals("Carro", result.category)
@@ -294,13 +275,14 @@ class ExpenseServiceTest {
     @DisplayName("Should update only category (PATCH partial)")
     fun shouldUpdateOnlyCategory() {
         // 1. Arrange
+        val userId = 1L
         val updateCategory = ExpenseUpdateDTO(category = "Contas da casa")
 
         `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
         `when`(expenseRepository.save(any(Expense::class.java))).thenReturn(testExpense)
 
         // 2. Act
-        val result = expenseService.updateExpense(1L, updateCategory)
+        val result = expenseService.updateExpense(1L, updateCategory, userId)
 
         // 3. Assert
         assertEquals("Contas da casa", result.category)
@@ -312,13 +294,14 @@ class ExpenseServiceTest {
     @DisplayName("Should update only amount (PATCH partial)")
     fun shouldUpdateOnlyAmount() {
         // 1. Arrange
+        val userId = 1L
         val updateAmount = ExpenseUpdateDTO(amount = 120.35.toBigDecimal())
 
         `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
         `when`(expenseRepository.save(any(Expense::class.java))).thenReturn(testExpense)
 
         // 2. Act
-        val result = expenseService.updateExpense(1L, updateAmount)
+        val result = expenseService.updateExpense(1L, updateAmount, userId)
 
         // 3. Assert
         assertEquals(120.35.toBigDecimal(), result.amount)
@@ -330,14 +313,31 @@ class ExpenseServiceTest {
     @DisplayName("Should throw exception when updating non existent expense")
     fun shouldThrowExceptionWhenUpdatingNonExistentExpense() {
         // 1. Arrange
+        val userId = 1L
         val updateData = ExpenseUpdateDTO()
         `when`(expenseRepository.findById(999L)).thenReturn(Optional.empty())
 
         // 2. Act & Assert
         assertThrows(ResourceNotFoundException::class.java) {
-            expenseService.updateExpense(999L, updateData)
+            expenseService.updateExpense(999L, updateData, userId)
         }
 
+    }
+
+
+    @Test
+    @DisplayName("Should throw exception when updating expense of another user")
+    fun shouldThrowExceptionWhenUpdatingExpenseOfAnotherUser() {
+        // 1. Arrange
+        val otherUserId = 999L
+        val updateData = ExpenseUpdateDTO(category = "Hacked")
+        `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
+
+        // 2. Act & Assert
+        assertThrows(ResourceNotFoundException::class.java) {
+            expenseService.updateExpense(1L, updateData, otherUserId)
+        }
+        verify(expenseRepository, never()).save(any(Expense::class.java))
     }
 
 
@@ -349,13 +349,14 @@ class ExpenseServiceTest {
     @DisplayName("Should delete expense")
     fun shouldDeleteExpense() {
         // 1. Arrange
-        `when`(expenseRepository.existsById(1L)).thenReturn(true)
+        val userId = 1L
+        `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
 
         // 2. Act
-        expenseService.deleteExpense(1L)
+        expenseService.deleteExpense(1L, userId)
 
         // 3. Assert
-        verify(expenseRepository, times(1)).deleteById(1L)
+        verify(expenseRepository, times(1)).delete(testExpense)
 
     }
 
@@ -364,14 +365,31 @@ class ExpenseServiceTest {
     @DisplayName("Should throw exception when deleting non existent expense")
     fun shouldThrowExceptionWhenDeletingNonExistentExpense() {
         // 1. Arrange
-        `when`(expenseRepository.existsById(999L)).thenReturn(false)
+        val userId = 1L
+        `when`(expenseRepository.findById(999L)).thenReturn(Optional.empty())
 
         // 2. Act & Assert
         val exception = assertThrows(ResourceNotFoundException::class.java) {
-            expenseService.deleteExpense(999L)
+            expenseService.deleteExpense(999L, userId)
         }
         assertEquals("Expense not found with id: 999", exception.message)
-        verify(expenseRepository, never()).deleteById(anyLong())
+        verify(expenseRepository, never()).delete(any(Expense::class.java))
+    }
+
+
+
+    @Test
+    @DisplayName("Should throw exception when deleting expense of another user")
+    fun shouldThrowExceptionWhenDeletingExpenseOfAnotherUser() {
+        // 1. Arrange
+        val otherUserId = 999L
+        `when`(expenseRepository.findById(1L)).thenReturn(Optional.of(testExpense))
+
+        // 2. Act & Assert
+        assertThrows(ResourceNotFoundException::class.java) {
+            expenseService.deleteExpense(1L, otherUserId)
+        }
+        verify(expenseRepository, never()).delete(any(Expense::class.java))
     }
 
 
