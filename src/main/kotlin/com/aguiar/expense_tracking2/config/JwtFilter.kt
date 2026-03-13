@@ -19,27 +19,34 @@ class JwtFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
+        val path = request.requestURI
 
-        // 1. Take header authorization
+        if (path.startsWith("/auth/")) {
+            filterChain.doFilter(request, response)
+            return
+        }
+
         val authHeader = request.getHeader("Authorization")
 
-        // 2. Checks if it has token
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // 3. Extracts token (remove "Bearer ")
-            val token = authHeader.substring(7)
-
-            // 4. Validates token
-            if (jwtService.validateToken(token)) {
-                // 5. Extracts userId and puts it in the Spring Security Context
-                val userId = jwtService.getUserIdFromToken(token)
-                val authentication = UsernamePasswordAuthenticationToken(userId, null, emptyList())
-                SecurityContextHolder.getContext().authentication = authentication
-            }
-
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            response.status = HttpServletResponse.SC_UNAUTHORIZED
+            response.writer.write("Missing token")
+            return
         }
-        // 6. Passes to the next filter
-        filterChain.doFilter(request, response)
 
+        val token = authHeader.substring(7)
+
+        if (!jwtService.validateToken(token)) {
+            response.status = HttpServletResponse.SC_UNAUTHORIZED
+            response.writer.write("Invalid token")
+            return
+        }
+
+        val userId = jwtService.getUserIdFromToken(token)
+        val authentication = UsernamePasswordAuthenticationToken(userId, null, emptyList())
+        SecurityContextHolder.getContext().authentication = authentication
+
+        filterChain.doFilter(request, response)
     }
 
 }

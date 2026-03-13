@@ -160,7 +160,7 @@ class ExpenseServiceTest {
         )
 
         val expenses = listOf(testExpense, expense2)
-        `when`(expenseRepository.findByUserId(userId)).thenReturn(expenses)
+        `when`(expenseRepository.findByUserIdWithUser(userId)).thenReturn(expenses)
 
         // 2. Act
         val result = expenseService.getAllExpenses(userId)
@@ -173,7 +173,7 @@ class ExpenseServiceTest {
         assertEquals("Condominio", result[1].subCategory)
         assertEquals(13.50.toBigDecimal(), result[0].amount)
         assertEquals(1153.33.toBigDecimal(), result[1].amount)
-        verify(expenseRepository, times(1)).findByUserId(userId)
+        verify(expenseRepository, times(1)).findByUserIdWithUser(userId)
     }
 
 
@@ -182,7 +182,7 @@ class ExpenseServiceTest {
     fun shouldReturnEmptyListWhenNoExpenses() {
         // 1. Arrange
         val userId = 1L
-        `when`(expenseRepository.findByUserId(userId)).thenReturn(listOf())
+        `when`(expenseRepository.findByUserIdWithUser(userId)).thenReturn(listOf())
 
         // 2. Act
         val result = expenseService.getAllExpenses(userId)

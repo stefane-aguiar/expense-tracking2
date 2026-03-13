@@ -50,7 +50,7 @@ class ExpenseService (
     // Get
     fun getAllExpenses(userId: Long): List<Expense> {
         logger.info("Fetching expenses for userId=$userId")
-        return expenseRepository.findByUserId(userId)
+        return expenseRepository.findByUserIdWithUser(userId)
     }
 
     fun getExpense(expenseId: Long, userId: Long): Expense {

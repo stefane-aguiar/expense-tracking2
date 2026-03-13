@@ -1,5 +1,6 @@
 package com.aguiar.expense_tracking2.config
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -24,6 +25,13 @@ class SecurityConfig (
     @Bean
     fun passwordEncoder(): PasswordEncoder {
         return BCryptPasswordEncoder()
+    }
+
+    @Bean
+    fun jwtFilterRegistration(jwtFilter: JwtFilter): FilterRegistrationBean<JwtFilter> {
+        val registration = FilterRegistrationBean(jwtFilter)
+        registration.isEnabled = false
+        return registration
     }
 
     @Bean
