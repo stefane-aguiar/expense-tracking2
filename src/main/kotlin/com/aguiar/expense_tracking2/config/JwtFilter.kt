@@ -21,7 +21,7 @@ class JwtFilter(
     ) {
         val path = request.requestURI
 
-        if (path.startsWith("/auth/")) {
+        if (path.startsWith("/auth/") || path.startsWith("/actuator/") ) {
             filterChain.doFilter(request, response)
             return
         }
