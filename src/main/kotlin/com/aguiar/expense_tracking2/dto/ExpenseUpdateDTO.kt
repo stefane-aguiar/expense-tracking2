@@ -9,6 +9,7 @@ class ExpenseUpdateDTO (
     var category: String? = null,
     var subCategory: String? = null,
     var description: String? = null,
+    var paymentMethod: String? = null,
     var date: LocalDate? = null,
 
     @field:Positive(message = "Amount must be a positive number")

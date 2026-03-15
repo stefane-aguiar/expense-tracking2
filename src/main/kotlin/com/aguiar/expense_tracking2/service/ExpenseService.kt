@@ -34,6 +34,7 @@ class ExpenseService (
             category = dto.category,
             subCategory = dto.subCategory,
             description = dto.description,
+            paymentMethod = dto.paymentMethod,
             amount = dto.amount,
             date = dto.date,
             user = user
@@ -83,6 +84,7 @@ class ExpenseService (
         dto.category?.takeIf { it.isNotBlank() }?.let { existingExpense.category = it }
         dto.subCategory?.takeIf { it.isNotBlank() }?.let { existingExpense.subCategory = it }
         dto.description?.let { existingExpense.description = it }
+        dto.paymentMethod?.takeIf { it.isNotBlank() }?.let {existingExpense.paymentMethod = it }
         dto.amount?.let { existingExpense.amount = it }
         dto.date?.let { existingExpense.date = it }
 

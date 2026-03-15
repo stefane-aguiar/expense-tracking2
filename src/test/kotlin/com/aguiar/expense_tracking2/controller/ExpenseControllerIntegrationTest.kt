@@ -70,6 +70,7 @@ class ExpenseControllerIntegrationTest {
             category = "Comida",
             subCategory = "Mercado",
             description = "mercado compra do mes",
+            paymentMethod = "Nubank Ultravioleta",
             amount = 604.87.toBigDecimal(),
             date = LocalDate.now()
         )
@@ -86,6 +87,7 @@ class ExpenseControllerIntegrationTest {
             .andExpect(jsonPath("$.category").value("Comida"))
             .andExpect(jsonPath("$.subCategory").value("Mercado"))
             .andExpect(jsonPath("$.description").value("mercado compra do mes"))
+            .andExpect(jsonPath("$.paymentMethod").value("Nubank Ultravioleta"))
             .andExpect(jsonPath("$.amount").value(604.87))
             .andExpect(jsonPath("$.user.id").value(userId))
     }
@@ -99,6 +101,7 @@ class ExpenseControllerIntegrationTest {
             category = "",
             subCategory = "Mercado",
             description = "mercado compra do mes",
+            paymentMethod = "Swile Card",
             amount = 604.87.toBigDecimal(),
             date = LocalDate.now()
         )
@@ -123,6 +126,7 @@ class ExpenseControllerIntegrationTest {
             category = "Comida",
             subCategory = "",
             description = "mercado compra do mes",
+            paymentMethod = "Swile Card",
             amount = 604.87.toBigDecimal(),
             date = LocalDate.now()
         )
@@ -147,6 +151,7 @@ class ExpenseControllerIntegrationTest {
         val dtoExpense = ExpenseCreateDTO(
             category = "Comida",
             subCategory = "Mercado",
+            paymentMethod = "Swile Card",
             amount = 604.87.toBigDecimal(),
             date = LocalDate.now()
         )
@@ -163,6 +168,7 @@ class ExpenseControllerIntegrationTest {
             .andExpect(jsonPath("$.category").value("Comida"))
             .andExpect(jsonPath("$.subCategory").value("Mercado"))
             .andExpect(jsonPath("$.description").isEmpty)
+            .andExpect(jsonPath("$.paymentMethod").value("Swile Card"))
             .andExpect(jsonPath("$.amount").value(604.87))
             .andExpect(jsonPath("$.user.id").value(userId))
     }
@@ -176,6 +182,7 @@ class ExpenseControllerIntegrationTest {
         val dtoExpense = ExpenseCreateDTO(
             category = "Comida",
             subCategory = "Mercado",
+            paymentMethod = "Swile Card",
             amount = 604.87.toBigDecimal(),
             date = LocalDate.now()
         )
@@ -186,7 +193,7 @@ class ExpenseControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dtoExpense))
         )
-            .andExpect(status().isForbidden)
+            .andExpect(status().isUnauthorized)
     }
 
 
@@ -200,8 +207,8 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("GET /expenses - Should get all expenses and return 200")
     fun shouldGetAllExpenses() {
         // 1. Arrange
-        createExpense("Comida", "Mercado", 604.87)
-        createExpense("Transporte", "Uber", 34.13)
+        createExpense("Comida", "Mercado", "Nubank Ultravioleta", 604.87)
+        createExpense("Transporte", "Uber", "Swile Card",34.13)
 
         // 2. Act & Assert
         mockMvc.perform(
@@ -221,7 +228,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("GET /expenses/{id} - Should get expense by id and return 200")
     fun shouldGetExpenseById() {
         // 1. Arrange
-        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val expenseId = createExpense("Comida", "Mercado", "Swile Card",604.87)
 
         // 2. Act & Assert
         mockMvc.perform(
@@ -252,7 +259,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("GET /expenses/{id} - Should return 404 when trying to access another user's expense")
     fun shouldReturn404WhenAccessingAnotherUsersExpense() {
         // 1. Arrange - create expense with current user
-        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val expenseId = createExpense("Comida", "Mercado", "Nubank Ultravioleta", 604.87)
 
         // Create another user and get their token
         val otherUserResult = createAnotherUserAndLogin("other@email.com")
@@ -287,7 +294,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("PATCH /expenses/{id} - Should update expense and return 200")
     fun shouldUpdateExpense() {
         // 1. Arrange
-        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val expenseId = createExpense("Comida", "Mercado", "Swile card",604.87)
         val dtoUpdated = ExpenseUpdateDTO(category = "Transporte", subCategory = "Uber")
 
         // 2. Act & Assert
@@ -326,7 +333,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("PATCH /expenses/{id} - Should return 404 when updating another user's expense")
     fun shouldReturn404WhenUpdatingAnotherUsersExpense() {
         // 1. Arrange
-        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val expenseId = createExpense("Comida", "Mercado", "Swile card",604.87)
         val dtoUpdated = ExpenseUpdateDTO(category = "Hacked")
 
         val otherUserResult = createAnotherUserAndLogin("hacker@email.com")
@@ -352,7 +359,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("DELETE /expenses/{id} - Should delete expense and return 200")
     fun shouldDeleteExpense() {
         // 1. Arrange
-        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val expenseId = createExpense("Comida", "Mercado", "Swile card",604.87)
 
         // 2. Act & Assert
         mockMvc.perform(
@@ -388,7 +395,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("DELETE /expenses/{id} - Should return 404 when deleting another user's expense")
     fun shouldReturn404WhenDeletingAnotherUsersExpense() {
         // 1. Arrange
-        val expenseId = createExpense("Comida", "Mercado", 604.87)
+        val expenseId = createExpense("Comida", "Mercado", "Nubank Ultravioleta",604.87)
 
         val otherUserResult = createAnotherUserAndLogin("deleter@email.com")
         val otherToken = otherUserResult.second
@@ -442,10 +449,11 @@ class ExpenseControllerIntegrationTest {
         return Pair(userId, token)
     }
 
-    private fun createExpense(category: String, subCategory: String, amount: Double): Long {
+    private fun createExpense(category: String, subCategory: String, paymentMethod: String, amount: Double): Long {
         val dto = ExpenseCreateDTO(
             category = category,
             subCategory = subCategory,
+            paymentMethod = paymentMethod,
             amount = amount.toBigDecimal(),
             date = LocalDate.now()
         )

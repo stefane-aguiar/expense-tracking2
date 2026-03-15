@@ -61,6 +61,7 @@ class ExpenseServiceTest {
             category = "Comida",
             subCategory = "Mercado",
             description = "description test",
+            paymentMethod = "Nubank Ultravioleta",
             amount = 13.50.toBigDecimal(),
             date = LocalDate.now(),
             user = testUser
@@ -82,6 +83,7 @@ class ExpenseServiceTest {
             category = "Saúde",
             subCategory = "Remédio",
             description = "gripe Ana",
+            paymentMethod = "Swile Card",
             amount = 40.18.toBigDecimal(),
             date = LocalDate.now()
         )
@@ -97,6 +99,7 @@ class ExpenseServiceTest {
                 category = exp.category,
                 subCategory = exp.subCategory,
                 description = exp.description,
+                paymentMethod = exp.paymentMethod,
                 amount = exp.amount,
                 date = exp.date,
                 user = exp.user
@@ -112,6 +115,7 @@ class ExpenseServiceTest {
         assertEquals("Saúde", result.category)
         assertEquals("Remédio", result.subCategory)
         assertEquals("gripe Ana", result.description)
+        assertEquals("Swile Card", result.paymentMethod)
         assertEquals(40.18.toBigDecimal(), result.amount)
         verify(userRepository, times(1)).findById(userId)
         verify(expenseRepository, times(1)).save(any(Expense::class.java))
@@ -125,6 +129,7 @@ class ExpenseServiceTest {
             category = "Comida",
             subCategory = "Comer fora",
             description = "cafe da manha padaria",
+            paymentMethod = "Swile Card",
             amount = 50.00.toBigDecimal(),
             date = LocalDate.now(),
         )
@@ -154,6 +159,7 @@ class ExpenseServiceTest {
             category = "Contas da casa",
             subCategory = "Condominio",
             description = "bla",
+            paymentMethod = "Boleto",
             amount = 1153.33.toBigDecimal(),
             date = LocalDate.now(),
             user = testUser
@@ -171,6 +177,7 @@ class ExpenseServiceTest {
         assertEquals("Contas da casa", result[1].category)
         assertEquals("Mercado", result[0].subCategory)
         assertEquals("Condominio", result[1].subCategory)
+        assertEquals("Boleto", result[1].paymentMethod)
         assertEquals(13.50.toBigDecimal(), result[0].amount)
         assertEquals(1153.33.toBigDecimal(), result[1].amount)
         verify(expenseRepository, times(1)).findByUserIdWithUser(userId)

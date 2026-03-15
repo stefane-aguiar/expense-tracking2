@@ -25,7 +25,10 @@ class Expense (
     @Column(nullable = false)
     var subCategory: String,
 
-    var description: String,
+    var description: String? = null,
+
+    @Column(nullable = false)
+    var paymentMethod: String,
 
     @Column(nullable = false, precision = 19, scale = 2)
     var amount: BigDecimal,

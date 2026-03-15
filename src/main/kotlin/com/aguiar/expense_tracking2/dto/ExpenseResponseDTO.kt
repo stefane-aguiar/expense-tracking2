@@ -9,7 +9,8 @@ class ExpenseResponseDTO (
     val id: Long,
     val category: String,
     val subCategory: String,
-    val description: String,
+    val description: String?,
+    val paymentMethod: String,
     val amount: BigDecimal,
     val date: LocalDate,
     val user: UserSummaryDTO
@@ -22,6 +23,7 @@ class ExpenseResponseDTO (
                 category = expense.category,
                 subCategory = expense.subCategory,
                 description = expense.description,
+                paymentMethod = expense.paymentMethod,
                 amount = expense.amount,
                 date = expense.date,
                 user = UserSummaryDTO.fromEntity(expense.user)
