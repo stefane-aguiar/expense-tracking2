@@ -1,5 +1,6 @@
 package com.aguiar.expense_tracking2.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -34,13 +35,23 @@ class SecurityConfig (
         return registration
     }
 
+    @Value("\${cors.allowed-origins}")
+    private lateinit var allowedOrigins: String
+
+
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration()
-        configuration.allowedOrigins = listOf("*")
+        configuration.allowedOrigins = allowedOrigins.split(",").map { it.trim() }
         configuration.allowedMethods = listOf("GET", "POST", "PATCH", "DELETE", "OPTIONS")
-        configuration.allowedHeaders = listOf("*")
+        configuration.allowedHeaders = listOf(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With"
+        )
         configuration.exposedHeaders = listOf("Authorization")
+        configuration.allowCredentials = true
+        configuration.maxAge = 3600L
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/**", configuration)
