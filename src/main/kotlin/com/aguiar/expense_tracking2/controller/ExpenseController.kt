@@ -30,7 +30,7 @@ class ExpenseController (
     fun createExpense(@Valid @RequestBody dto: ExpenseCreateDTO, authentication: Authentication): ResponseEntity<ExpenseResponseDTO> {
         val userId = authentication.principal as Long
         val created = expenseService.createExpense(dto, userId)
-        return ResponseEntity.status(HttpStatus.CREATED).body(ExpenseResponseDTO.fromEntity(created))
+        return ResponseEntity.status(HttpStatus.CREATED).body(created)
     }
 
 
@@ -38,16 +38,14 @@ class ExpenseController (
     @GetMapping
     fun getAllExpenses(authentication: Authentication): ResponseEntity<List<ExpenseResponseDTO>> {
         val userId = authentication.principal as Long
-        val expenses = expenseService.getAllExpenses(userId)
-        return ResponseEntity.ok(expenses.map(ExpenseResponseDTO::fromEntity))
+        return ResponseEntity.ok(expenseService.getAllExpenses(userId))
     }
 
     @GetMapping("/{expenseId}")
     fun getExpense(@PathVariable @Min(value = 1, message = "Expense ID must be a positive number") expenseId: Long,
                    authentication: Authentication): ResponseEntity<ExpenseResponseDTO> {
         val userId = authentication.principal as Long
-        val expense = expenseService.getExpense(expenseId, userId)
-        return ResponseEntity.ok(ExpenseResponseDTO.fromEntity(expense))
+        return ResponseEntity.ok(expenseService.getExpense(expenseId, userId))
     }
 
 
@@ -57,8 +55,7 @@ class ExpenseController (
     fun updateExpense(@PathVariable @Min(value = 1, message = "Expense ID must be a positive number") expenseId: Long,
                       @Valid @RequestBody dto: ExpenseUpdateDTO, authentication: Authentication): ResponseEntity<ExpenseResponseDTO> {
         val userId = authentication.principal as Long
-        val updated = expenseService.updateExpense(expenseId, dto, userId)
-        return ResponseEntity.ok(ExpenseResponseDTO.fromEntity(updated))
+        return ResponseEntity.ok(expenseService.updateExpense(expenseId, dto, userId))
     }
 
 
