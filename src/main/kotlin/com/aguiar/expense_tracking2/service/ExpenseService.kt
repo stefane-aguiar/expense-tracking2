@@ -1,12 +1,15 @@
 package com.aguiar.expense_tracking2.service
 
 import com.aguiar.expense_tracking2.dto.ExpenseCreateDTO
+import com.aguiar.expense_tracking2.dto.ExpenseResponseDTO
 import com.aguiar.expense_tracking2.dto.ExpenseUpdateDTO
 import com.aguiar.expense_tracking2.exception.ResourceNotFoundException
 import com.aguiar.expense_tracking2.model.Expense
 import com.aguiar.expense_tracking2.repository.ExpenseRepository
 import com.aguiar.expense_tracking2.repository.UserRepository
 import org.slf4j.LoggerFactory
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
 @Service
@@ -17,9 +20,24 @@ class ExpenseService (
 
     private val logger = LoggerFactory.getLogger(ExpenseService::class.java)
 
+    // Private helper - sem anotação de cache, pode ser chamado internamente
+    private fun findExpenseForUser(expenseId: Long, userId: Long): Expense {
+        val expense = expenseRepository.findById(expenseId)
+            .orElseThrow {
+                logger.warn("Expense not found with id=$expenseId")
+                ResourceNotFoundException("Expense not found with id: $expenseId")
+            }
+        if (expense.user.id != userId) {
+            logger.warn("User $userId tried to access expense $expenseId owned by ${expense.user.id}")
+            throw ResourceNotFoundException("Expense not found with id: $expenseId")
+        }
+        return expense
+    }
+
 
     // Create
-    fun createExpense(dto: ExpenseCreateDTO, userId: Long): Expense {
+    @CacheEvict(cacheNames = ["expenses"], key = "#userId")
+    fun createExpense(dto: ExpenseCreateDTO, userId: Long): ExpenseResponseDTO {
         logger.info("Creating expense for userId=${userId}")
 
         // 1. Search real user on DataBase
@@ -43,42 +61,33 @@ class ExpenseService (
         // 3. Save and return
         val saved = expenseRepository.save(expense)
         logger.info("Expense created: id=${saved.id}, amount=${dto.amount}")
-        return saved
+        return ExpenseResponseDTO.fromEntity(saved)
 
     }
 
 
     // Get
-    fun getAllExpenses(userId: Long): List<Expense> {
+    @Cacheable("expenses", key = "#userId")
+    fun getAllExpenses(userId: Long): List<ExpenseResponseDTO> {
         logger.info("Fetching expenses for userId=$userId")
         return expenseRepository.findByUserIdWithUser(userId)
+            .map { ExpenseResponseDTO.fromEntity(it) }
     }
 
-    fun getExpense(expenseId: Long, userId: Long): Expense {
+    fun getExpense(expenseId: Long, userId: Long): ExpenseResponseDTO {
         logger.info("Fetching expense id=$expenseId for userId=$userId")
-
-        val expense = expenseRepository.findById(expenseId)
-            .orElseThrow {
-                logger.warn("Expense not found with id=$expenseId")
-                ResourceNotFoundException("Expense not found with id: $expenseId")
-            }
-
-        if (expense.user.id != userId) {
-            logger.warn("User $userId tried to access expense $expenseId owned by ${expense.user.id}")
-            throw ResourceNotFoundException("Expense not found with id: $expenseId")
-        }
-
-        return expense
+        return ExpenseResponseDTO.fromEntity(findExpenseForUser(expenseId, userId))
     }
 
 
 
 
     // Update
-    fun updateExpense(expenseId: Long, dto: ExpenseUpdateDTO, userId: Long): Expense {
+    @CacheEvict(cacheNames = ["expenses"], key = "#userId")
+    fun updateExpense(expenseId: Long, dto: ExpenseUpdateDTO, userId: Long): ExpenseResponseDTO {
         logger.info("Updating expense id=$expenseId for userId=$userId")
 
-        val existingExpense = getExpense(expenseId, userId)
+        val existingExpense = findExpenseForUser(expenseId, userId)
 
         // 2. Updates only the fields which came in the request (PATCH)
         dto.category?.takeIf { it.isNotBlank() }?.let { existingExpense.category = it }
@@ -91,15 +100,16 @@ class ExpenseService (
         // 3. Save and return
         val saved = expenseRepository.save(existingExpense)
         logger.info("Expense updated: id=${saved.id}")
-        return saved
+        return ExpenseResponseDTO.fromEntity(saved)
     }
 
 
     // Delete
+    @CacheEvict(cacheNames = ["expenses"], key = "#userId")
     fun deleteExpense(expenseId: Long, userId: Long) {
         logger.info("Deleting expense id=$expenseId for userId=$userId")
 
-        val expense = getExpense(expenseId, userId)
+        val expense = findExpenseForUser(expenseId, userId)
         expenseRepository.delete(expense)
         logger.info("Expense deleted: id=$expenseId")
     }

@@ -1,6 +1,7 @@
 package com.aguiar.expense_tracking2.dto
 
 import com.aguiar.expense_tracking2.model.Expense
+import java.io.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -15,7 +16,7 @@ class ExpenseResponseDTO (
     val date: LocalDate,
     val user: UserSummaryDTO
 
-){
+) : Serializable {
     companion object {
         fun fromEntity(expense: Expense): ExpenseResponseDTO {
             return ExpenseResponseDTO(
